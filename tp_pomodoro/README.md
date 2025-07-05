@@ -1,34 +1,29 @@
-### tp pomodoro
+Authentification avec Supabase
+Fonctionnement
+J’ai utilisé Supabase pour gérer l’inscription et la connexion des utilisateurs.
 
-# Installation du projet
+L’utilisateur doit s’inscrire (email + mot de passe) pour accéder à l’application Pomodoro.
 
-- [x] Installation de flutter mac os desktop
+Une fois connecté, il est automatiquement redirigé vers le timer.
 
-# Conception de l'interface
-- [] Mise en place les widget timer, bouton, pause, affichage du temps
+Formulaires créés
+Formulaire d’inscription : crée un nouvel utilisateur dans Supabase.
 
-# authentification
- - [] formulaire de connexion
- - [] formulaire d'inscription 
+Formulaire de connexion : vérifie les identifiants et connecte l’utilisateur.
 
-# implémenter une logique de Pomodoro
- - [] Gestion timer a 25 min par exemple
- - [] mise en place timer pour pause de 1 min par exemple
+Redirection
+Si l’utilisateur est déjà connecté → il est directement redirigé vers l’écran Pomodoro sans repasser par la connexion.
 
-## Intégration de Supabase dans Flutter
+Table session
+À chaque connexion, une nouvelle ligne est ajoutée dans la table session :
 
- - [] Ajouter la dépendance supabase_flutter dans le fichier pubspec.yaml
- - [] Initialiser Supabase dans le code Dart avec l’URL et la clé anonyme du projet.
- - [] Implémenter les fonctions d’insertion et de récupération des sessions Pomodoro via l’API Supabase.
+user_id
 
-## Intégration de Supabase dans Flutter
+type: "login"
 
- - [] Ajouter la dépendance supabase_flutter dans le fichier pubspec.yaml.
- - [] Initialiser Supabase dans le code Dart avec l’URL et la clé anonyme du projet.
- - [] Implémenter les fonctions d’insertion et de récupération des sessions Pomodoro via l’API Supabase.
+duration: 0 (pour l’instant)
 
-## synchronisation des donnée
- - [] sauvegarde de session terminé
- - [] recuperation  affichage des donnée des session supabase
- - [] Récupérer et afficher l’historique des sessions depuis Supabase
+À savoir
+J’ai désactivé la vérification d’email pour aller plus vite pendant le développement.
 
+En production, on pourrait activer la confirmation par mail si besoin.
