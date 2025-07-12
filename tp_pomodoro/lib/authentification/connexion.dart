@@ -12,25 +12,15 @@ class ConnexionScreen extends StatefulWidget {
 }
 
 class _ConnexionScreenState extends State<ConnexionScreen> {
-  // ─────────────────────────────────────────────────────
-  // CONFIG
-  // ─────────────────────────────────────────────────────
-  /// Passe à `true` si tu veux accepter la connexion même si
-  /// l’e-mail n’a pas encore été confirmé.
+
   static const bool skipEmailConfirmation = false;
 
-  // ─────────────────────────────────────────────────────
-  // CONTRÔLEURS & SUPABASE
-  // ─────────────────────────────────────────────────────
   final _formKey = GlobalKey<FormState>();
   final _email     = TextEditingController();
   final _password  = TextEditingController();
 
   final supabase = Supabase.instance.client;
 
-  // ─────────────────────────────────────────────────────
-  // LIFE-CYCLE
-  // ─────────────────────────────────────────────────────
   @override
   void dispose() {
     _email.dispose();
@@ -38,9 +28,7 @@ class _ConnexionScreenState extends State<ConnexionScreen> {
     super.dispose();
   }
 
-  // ─────────────────────────────────────────────────────
-  // AUTH
-  // ─────────────────────────────────────────────────────
+ 
   Future<void> _signIn() async {
     try {
       final res = await supabase.auth.signInWithPassword(
@@ -52,7 +40,7 @@ class _ConnexionScreenState extends State<ConnexionScreen> {
       final emailOk  = user?.emailConfirmedAt != null;
 
       if (user != null && (emailOk || skipEmailConfirmation)) {
-        // journalise la connexion
+        //  la connexion a suppabase 
         await supabase.from('session').insert({
           'user_id' : user.id,
           'type'    : 'login',
@@ -84,9 +72,6 @@ class _ConnexionScreenState extends State<ConnexionScreen> {
     }
   }
 
-  // ─────────────────────────────────────────────────────
-  // UI
-  // ─────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -133,7 +118,6 @@ class _ConnexionScreenState extends State<ConnexionScreen> {
                       },
                     ),
                     const SizedBox(height: 20),
-
                     // mot de passe
                     TextFormField(
                       controller: _password,

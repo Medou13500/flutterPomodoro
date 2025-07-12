@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PomodoroScreen extends StatefulWidget {
   const PomodoroScreen({super.key});
@@ -18,6 +19,7 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
   int completedCycles = 0;
 
   Timer? _timer;
+  final supabase = Supabase.instance.client;
 
   void _startTimer() {
     if (isRunning) return;
@@ -30,7 +32,6 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
     setState(() => isRunning = false);
   }
 
-  //!  reset 
   void _resetTimer() {
     _timer?.cancel();
     setState(() {
@@ -39,8 +40,18 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
     });
   }
 
-  //! annulation
-  void _tick() {
+  Future<void> _saveSession() async {
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+
+    await supabase.from('session').insert({
+      'user_id': user.id,
+      'type': isWorkTime ? 'work' : 'break',
+      'duration': isWorkTime ? workDuration : breakDuration,
+    });
+  }
+
+  void _tick() async {
     if (remainingSeconds == 0) {
       _timer?.cancel();
 
@@ -48,13 +59,14 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
         completedCycles++;
       }
 
+      await _saveSession();
+
       setState(() {
         isWorkTime = !isWorkTime;
         remainingSeconds = isWorkTime ? workDuration : breakDuration;
         isRunning = false;
       });
 
-      // pop-up
       _showAlert(isWorkTime ? 'C’est reparti pour le travail 💪' : 'Pause bien méritée 😌');
     } else {
       setState(() => remainingSeconds--);
@@ -77,26 +89,31 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
     );
   }
 
-  // Mise en place de mettre sous format date a timer
   String _formatTime(int seconds) {
     final minutes = (seconds ~/ 60).toString().padLeft(2, '0');
     final sec = (seconds % 60).toString().padLeft(2, '0');
     return '$minutes:$sec';
   }
 
-  // Calcule sécurisé de la progression
   double _getProgress() {
     final total = isWorkTime ? workDuration : breakDuration;
     final elapsed = total - remainingSeconds;
     if (total <= 0) return 0.0;
     final progress = elapsed / total;
-    return progress.clamp(0.0, 1.0); // évite les valeurs invalides
+    return progress.clamp(0.0, 1.0);
   }
 
   @override
   void dispose() {
     _timer?.cancel();
     super.dispose();
+  }
+
+  void _goToHistory() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const HistoryScreen()),
+    );
   }
 
   @override
@@ -111,6 +128,12 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
         backgroundColor: Colors.black,
         elevation: 0,
         centerTitle: true,
+        actions: [
+          IconButton(
+            onPressed: _goToHistory,
+            icon: const Icon(Icons.history),
+          ),
+        ],
       ),
       body: Center(
         child: Padding(
@@ -127,7 +150,6 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              // progress cercle avec le timer au centre
               Stack(
                 alignment: Alignment.center,
                 children: [
@@ -186,6 +208,64 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class HistoryScreen extends StatelessWidget {
+  const HistoryScreen({super.key});
+
+  Future<List<Map<String, dynamic>>> _fetchSessions() async {
+    final supabase = Supabase.instance.client;
+    final user = supabase.auth.currentUser;
+    if (user == null) return [];
+
+    final response = await supabase
+        .from('session')
+        .select()
+        .eq('user_id', user.id)
+        .order('created_at', ascending: false);
+
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Historique des sessions')),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: _fetchSessions(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Erreur : ${snapshot.error}'));
+          } else if (snapshot.data == null || snapshot.data!.isEmpty) {
+            return const Center(child: Text('Aucune session trouvée.'));
+          }
+
+          final sessions = snapshot.data!;
+
+          return ListView.builder(
+            itemCount: sessions.length,
+            itemBuilder: (context, index) {
+              final session = sessions[index];
+              return ListTile(
+                leading: Icon(
+                  session['type'] == 'work' ? Icons.work : Icons.coffee,
+                  color: session['type'] == 'work' ? Colors.red : Colors.green,
+                ),
+                title: Text('Type : ${session['type']}'),
+                subtitle: Text('Durée : ${session['duration']} sec'),
+                trailing: Text(
+                  session['created_at']?.toString().substring(0, 16) ?? '',
+                  style: const TextStyle(fontSize: 12),
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }
